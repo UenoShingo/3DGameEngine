@@ -1,32 +1,113 @@
 #include "Application.h"
 
+#include "Core/Logging/Logger.h"
+
+#include <cstdlib>
+#include <exception>
+#include <iostream>
+
 namespace MyGameEngine
 {
     int Application::Run()
     {
-        if (m_IsRunning)
+        if (m_HasRun)
         {
-            return 1;
+            std::cerr
+                << "Application::Run() already called\n";
+
+            return EXIT_FAILURE;
         }
 
-        if (!OnInitialize())
+        m_HasRun = true;
+
+        if (!Logger::Initialize())
         {
-            return 1;
+            Logger::Shutdown();
+            return EXIT_FAILURE;
         }
 
-        m_IsRunning = true;
+        int exitCode = EXIT_SUCCESS;
 
-        while (m_IsRunning)
+        try
         {
-            OnUpdate();
+            ENGINE_LOG_INFO("Application starting");
+
+            if (!OnInitialize())
+            {
+                ENGINE_LOG_ERROR(
+                    "Application initialization failed"
+                );
+
+                exitCode = EXIT_FAILURE;
+            }
+            else
+            {
+                m_IsRunning = true;
+
+                ENGINE_LOG_INFO(
+                    "Application initialized successfully"
+                );
+
+                while (m_IsRunning)
+                {
+                    OnUpdate();
+                }
+            }
+        }
+        catch (const std::exception& exception)
+        {
+            ENGINE_LOG_CRITICAL(
+                "Unhandled exception: {}",
+                exception.what()
+            );
+
+            exitCode = EXIT_FAILURE;
+        }
+        catch (...)
+        {
+            ENGINE_LOG_CRITICAL(
+                "Unknown unhandled exception"
+            );
+
+            exitCode = EXIT_FAILURE;
         }
 
-        OnShutdown();
+        m_IsRunning = false;
 
-        return 0;
+        // OnShutdown must support partial initialization.
+        try
+        {
+            OnShutdown();
+        }
+        catch (const std::exception& exception)
+        {
+            ENGINE_LOG_CRITICAL(
+                "Shutdown exception: {}",
+                exception.what()
+            );
+
+            exitCode = EXIT_FAILURE;
+        }
+        catch (...)
+        {
+            ENGINE_LOG_CRITICAL(
+                "Unknown shutdown exception"
+            );
+
+            exitCode = EXIT_FAILURE;
+        }
+
+        ENGINE_LOG_INFO(
+            "Application stopped with exit code {}",
+            exitCode
+        );
+
+        Logger::Shutdown();
+
+        return exitCode;
     }
 
-    void Application::RequestExit()
+    void Application::RequestExit() noexcept
     {
         m_IsRunning = false;
     }

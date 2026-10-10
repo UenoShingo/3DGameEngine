@@ -30,3 +30,11 @@ cmake_install.cmake
 # System
 .DS_Store
 Thumbs.db
+
+# Runtime logs
+Logs/
+**/Logs/
+
+# CMake dependencies and build output
+out/
+build/

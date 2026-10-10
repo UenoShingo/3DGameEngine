@@ -15,9 +15,10 @@ namespace MyGameEngine
         Application& operator=(Application&&) = delete;
 
         int Run();
-        void RequestExit();
+        void RequestExit() noexcept;
 
-        [[nodiscard]] bool IsRunning() const noexcept;
+        [[nodiscard]]
+        bool IsRunning() const noexcept;
 
     protected:
         virtual bool OnInitialize() = 0;
@@ -26,5 +27,6 @@ namespace MyGameEngine
 
     private:
         bool m_IsRunning = false;
+        bool m_HasRun = false;
     };
 }

@@ -1,27 +1,41 @@
 #include "EditorApplication.h"
 
-#include <iostream>
+#include "Core/Debug/Assert.h"
+#include "Core/Logging/Logger.h"
 
 bool EditorApplication::OnInitialize()
 {
-    std::cout << "[Editor] Initialize\n";
+    ENGINE_LOG_INFO("Editor initializing");
+
+    m_FrameCount = 0;
+
+    ENGINE_ASSERT(
+        m_FrameCount == 0,
+        "Frame count must start at zero"
+    );
+
+    ENGINE_LOG_INFO("Editor initialized");
+
     return true;
 }
 
 void EditorApplication::OnUpdate()
 {
-    std::cout << "[Editor] Update: "
-              << ++m_FrameCount << '\n';
+    ++m_FrameCount;
 
-    // Commit 005以降でウィンドウイベントを処理する。
-    // 現段階では3フレームで終了する。
+    ENGINE_LOG_DEBUG(
+        "Editor frame: {}",
+        m_FrameCount
+    );
+
     if (m_FrameCount >= 3)
     {
+        ENGINE_LOG_INFO("Editor exit requested");
         RequestExit();
     }
 }
 
 void EditorApplication::OnShutdown()
 {
-    std::cout << "[Editor] Shutdown\n";
+    ENGINE_LOG_INFO("Editor shutting down");
 }

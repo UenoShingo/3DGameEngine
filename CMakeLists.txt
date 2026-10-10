@@ -19,8 +19,22 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# Dependencies
 include(FetchContent)
 
+set(SPDLOG_BUILD_EXAMPLE OFF CACHE BOOL "" FORCE)
+set(SPDLOG_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+
+FetchContent_Declare(
+    spdlog
+    GIT_REPOSITORY https://github.com/gabime/spdlog.git
+    GIT_TAG v1.17.0
+    GIT_SHALLOW TRUE
+)
+
+FetchContent_MakeAvailable(spdlog)
+
+# Projects
 add_subdirectory(Engine)
 add_subdirectory(Editor)
 add_subdirectory(Game/SampleGame)
