@@ -8,6 +8,7 @@
 #include "Graphics/DirectX12/D3D12Device.h"
 #include "Graphics/DirectX12/GraphicsContext.h"
 #include "Graphics/DirectX12/SwapChain.h"
+#include "Graphics/Renderer/Renderer.h"
 
 #include <cstdint>
 
@@ -33,5 +34,11 @@ private:
     MyGameEngine::D3D12Device m_D3D12Device;
     MyGameEngine::GraphicsContext m_GraphicsContext;
     MyGameEngine::SwapChain m_SwapChain;
-    std::uint64_t m_FrameNumber = 0;
+    MyGameEngine::Renderer m_Renderer;
+
+    std::uint32_t m_PendingWidth = 0;
+    std::uint32_t m_PendingHeight = 0;
+
+    bool m_ResizePending = false;
+    bool m_IsMinimized = false;
 };

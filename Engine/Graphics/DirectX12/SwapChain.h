@@ -47,6 +47,13 @@ namespace MyGameEngine
             const SwapChainProperties& properties
         );
 
+        [[nodiscard]]
+        bool Resize(
+            ID3D12Device* device,
+            std::uint32_t width,
+            std::uint32_t height
+        );
+
         void Shutdown() noexcept;
 
         [[nodiscard]]

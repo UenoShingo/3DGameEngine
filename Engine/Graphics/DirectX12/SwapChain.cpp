@@ -146,6 +146,80 @@ namespace MyGameEngine
         return true;
     }
 
+    bool SwapChain::Resize(
+        ID3D12Device* device,
+        std::uint32_t width,
+        std::uint32_t height)
+    {
+        if (!IsValid() || device == nullptr)
+        {
+            ENGINE_LOG_ERROR(
+                "SwapChain resize: invalid resources"
+            );
+            return false;
+        }
+
+        if (width == 0 || height == 0)
+        {
+            return true;
+        }
+
+        if (width == m_Width && height == m_Height)
+        {
+            return true;
+        }
+
+        ENGINE_LOG_INFO(
+            "Resizing SwapChain: {}x{} -> {}x{}",
+            m_Width,
+            m_Height,
+            width,
+            height
+        );
+
+        for (auto& buffer : m_BackBuffers)
+        {
+            buffer.Reset();
+        }
+
+        m_RTVHeap.Reset();
+        m_RTVDescriptorSize = 0;
+
+        const HRESULT hr = m_SwapChain->ResizeBuffers(
+            BufferCount,
+            width,
+            height,
+            m_Format,
+            0
+        );
+
+        if (!ENGINE_CHECK_HR(hr))
+        {
+            ENGINE_LOG_ERROR("ResizeBuffers failed");
+            Shutdown();
+            return false;
+        }
+
+        m_Width = width;
+        m_Height = height;
+
+        if (!CreateRenderTargetViews(device))
+        {
+            ENGINE_LOG_ERROR(
+                "Failed to recreate render target views"
+            );
+            Shutdown();
+            return false;
+        }
+
+        ENGINE_LOG_INFO(
+            "SwapChain resized successfully: {}x{}",
+            m_Width,
+            m_Height
+        );
+        return true;
+    }
+
     bool SwapChain::CreateRenderTargetViews(
         ID3D12Device* device)
     {

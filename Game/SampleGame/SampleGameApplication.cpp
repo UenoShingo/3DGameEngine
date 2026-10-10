@@ -68,8 +68,6 @@ bool SampleGameApplication::OnInitialize()
         return false;
     }
 
-    m_FrameNumber = 0;
-
     MyGameEngine::SwapChainProperties swapChainProperties{};
     swapChainProperties.Width = m_Window.GetWidth();
     swapChainProperties.Height = m_Window.GetHeight();
@@ -87,6 +85,16 @@ bool SampleGameApplication::OnInitialize()
         );
         return false;
     }
+
+    m_Renderer.SetClearColor(0.12f, 0.20f, 0.16f, 1.0f);
+    m_Renderer.SetVSync(true);
+
+    m_PendingWidth = 0;
+    m_PendingHeight = 0;
+    m_ResizePending = false;
+    m_IsMinimized = false;
+
+    ENGINE_LOG_INFO("SampleGame Renderer initialized");
 
     m_Window.Show();
 
@@ -109,34 +117,69 @@ void SampleGameApplication::OnUpdate()
         return;
     }
 
-    const auto frameIndex =
-        static_cast<std::uint32_t>(
-            m_FrameNumber %
-            MyGameEngine::GraphicsContext::FrameCount
-        );
-
-    if (!m_GraphicsContext.BeginFrame(frameIndex))
+    if (m_IsMinimized)
     {
-        ENGINE_LOG_CRITICAL(
-            "SampleGame BeginFrame failed"
-        );
-        RequestExit();
+        Sleep(16);
         return;
     }
 
-    // Commit 012 will add rendering commands.
-    if (!m_GraphicsContext.EndFrame())
+    if (m_ResizePending)
     {
-        ENGINE_LOG_CRITICAL(
-            "SampleGame EndFrame failed"
+        RECT clientRect{};
+
+        if (!GetClientRect(m_Window.GetHandle(), &clientRect))
+        {
+            ENGINE_LOG_ERROR(
+                "SampleGame GetClientRect failed"
+            );
+            RequestExit();
+            return;
+        }
+
+        const auto width = static_cast<std::uint32_t>(
+            clientRect.right - clientRect.left
         );
-        RequestExit();
-        return;
+        const auto height = static_cast<std::uint32_t>(
+            clientRect.bottom - clientRect.top
+        );
+
+        if (width == 0 || height == 0)
+        {
+            Sleep(16);
+            return;
+        }
+
+        if (!m_GraphicsContext.PrepareForResize())
+        {
+            ENGINE_LOG_CRITICAL(
+                "SampleGame GPU resize synchronization failed"
+            );
+            RequestExit();
+            return;
+        }
+
+        if (!m_SwapChain.Resize(
+                m_D3D12Device.GetDevice(),
+                width,
+                height))
+        {
+            ENGINE_LOG_CRITICAL(
+                "SampleGame SwapChain resize failed"
+            );
+            RequestExit();
+            return;
+        }
+
+        m_ResizePending = false;
     }
 
-    ++m_FrameNumber;
-
-    Sleep(16);
+    if (!m_Renderer.RenderFrame(
+            m_GraphicsContext,
+            m_SwapChain))
+    {
+        ENGINE_LOG_CRITICAL("SampleGame rendering failed");
+        RequestExit();
+    }
 }
 
 void SampleGameApplication::OnShutdown()
@@ -154,6 +197,8 @@ void SampleGameApplication::OnShutdown()
     m_D3D12Device.Shutdown();
     m_GraphicsAdapter.Shutdown();
     m_Window.Destroy();
+
+    ENGINE_LOG_INFO("SampleGame shutdown completed");
 }
 
 void SampleGameApplication::OnWindowEvent(
@@ -169,12 +214,23 @@ void SampleGameApplication::OnWindowEvent(
         break;
 
     case WindowEventType::Resized:
+    {
+        m_PendingWidth = event.Width;
+        m_PendingHeight = event.Height;
+        m_IsMinimized = event.Width == 0 || event.Height == 0;
+
+        if (!m_IsMinimized)
+        {
+            m_ResizePending = true;
+        }
+
         ENGINE_LOG_INFO(
-            "SampleGame resized: {}x{}",
+            "SampleGame resize requested: {}x{}",
             event.Width,
             event.Height
         );
         break;
+    }
 
     case WindowEventType::FocusGained:
         ENGINE_LOG_INFO("SampleGame focus gained");

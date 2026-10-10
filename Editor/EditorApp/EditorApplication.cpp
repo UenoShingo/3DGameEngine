@@ -69,8 +69,6 @@ bool EditorApplication::OnInitialize()
         return false;
     }
 
-    m_FrameNumber = 0;
-
     MyGameEngine::SwapChainProperties swapChainProperties{};
     swapChainProperties.Width = m_Window.GetWidth();
     swapChainProperties.Height = m_Window.GetHeight();
@@ -96,6 +94,16 @@ bool EditorApplication::OnInitialize()
         m_SwapChain.GetHeight()
     );
 
+    m_Renderer.SetClearColor(0.09f, 0.14f, 0.22f, 1.0f);
+    m_Renderer.SetVSync(true);
+
+    m_PendingWidth = 0;
+    m_PendingHeight = 0;
+    m_ResizePending = false;
+    m_IsMinimized = false;
+
+    ENGINE_LOG_INFO("Editor Renderer initialized");
+
     m_Window.Show();
 
     ENGINE_LOG_INFO("Editor initialized");
@@ -116,32 +124,72 @@ void EditorApplication::OnUpdate()
         return;
     }
 
-    const auto frameIndex =
-        static_cast<std::uint32_t>(
-            m_FrameNumber %
-            MyGameEngine::GraphicsContext::FrameCount
+    if (m_IsMinimized)
+    {
+        Sleep(16);
+        return;
+    }
+
+    if (m_ResizePending)
+    {
+        RECT clientRect{};
+
+        if (!GetClientRect(m_Window.GetHandle(), &clientRect))
+        {
+            ENGINE_LOG_ERROR(
+                "GetClientRect failed: {}",
+                GetLastError()
+            );
+            RequestExit();
+            return;
+        }
+
+        const auto width = static_cast<std::uint32_t>(
+            clientRect.right - clientRect.left
+        );
+        const auto height = static_cast<std::uint32_t>(
+            clientRect.bottom - clientRect.top
         );
 
-    if (!m_GraphicsContext.BeginFrame(frameIndex))
-    {
-        ENGINE_LOG_CRITICAL("Editor BeginFrame failed");
-        RequestExit();
-        return;
+        if (width == 0 || height == 0)
+        {
+            Sleep(16);
+            return;
+        }
+
+        if (!m_GraphicsContext.PrepareForResize())
+        {
+            ENGINE_LOG_CRITICAL(
+                "GPU synchronization before resize failed"
+            );
+            RequestExit();
+            return;
+        }
+
+        if (!m_SwapChain.Resize(
+                m_D3D12Device.GetDevice(),
+                width,
+                height))
+        {
+            ENGINE_LOG_CRITICAL(
+                "Editor SwapChain resize failed"
+            );
+            RequestExit();
+            return;
+        }
+
+        m_ResizePending = false;
     }
 
-    // Commit 011: no rendering commands are recorded yet.
-    if (!m_GraphicsContext.EndFrame())
+    if (!m_Renderer.RenderFrame(
+            m_GraphicsContext,
+            m_SwapChain))
     {
-        ENGINE_LOG_CRITICAL("Editor EndFrame failed");
+        ENGINE_LOG_CRITICAL(
+            "Editor frame rendering failed"
+        );
         RequestExit();
-        return;
     }
-
-    ++m_FrameNumber;
-
-    // Temporary idle delay.
-    // Replace with frame timing in later commits.
-    Sleep(16);
 }
 
 void EditorApplication::OnShutdown()
@@ -151,7 +199,7 @@ void EditorApplication::OnShutdown()
     if (!m_GraphicsContext.Shutdown())
     {
         ENGINE_LOG_CRITICAL(
-            "GraphicsContext shutdown failed"
+            "GPU shutdown synchronization failed"
         );
     }
 
@@ -159,6 +207,8 @@ void EditorApplication::OnShutdown()
     m_D3D12Device.Shutdown();
     m_GraphicsAdapter.Shutdown();
     m_Window.Destroy();
+
+    ENGINE_LOG_INFO("Editor shutdown completed");
 }
 
 void EditorApplication::OnWindowEvent(
@@ -174,14 +224,23 @@ void EditorApplication::OnWindowEvent(
         break;
 
     case WindowEventType::Resized:
+    {
+        m_PendingWidth = event.Width;
+        m_PendingHeight = event.Height;
+        m_IsMinimized = event.Width == 0 || event.Height == 0;
+
+        if (!m_IsMinimized)
+        {
+            m_ResizePending = true;
+        }
+
         ENGINE_LOG_INFO(
-            "Editor window resized: {}x{}",
+            "Editor resize requested: {}x{}",
             event.Width,
             event.Height
         );
-        // SwapChain::Resize() will be added after GPU
-        // synchronization is available.
         break;
+    }
 
     case WindowEventType::FocusGained:
         ENGINE_LOG_INFO("Editor focus gained");
