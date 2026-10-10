@@ -1,5 +1,7 @@
 add_executable(SampleGame
     main.cpp
+    SampleGameApplication.h
+    SampleGameApplication.cpp
 )
 
 target_link_libraries(SampleGame

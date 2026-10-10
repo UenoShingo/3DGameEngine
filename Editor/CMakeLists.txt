@@ -1,5 +1,7 @@
 add_executable(Editor
     EditorApp/main.cpp
+    EditorApp/EditorApplication.h
+    EditorApp/EditorApplication.cpp
 )
 
 target_link_libraries(Editor

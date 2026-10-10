@@ -1,12 +1,7 @@
-#include <iostream>
-#include "Core/Engine.h"
+#include "SampleGameApplication.h"
 
 int main()
 {
-    std::cout << "Sample Game\n";
-    std::cout << "Engine Version: "
-              << MyGameEngine::Engine::GetVersion()
-              << '\n';
-
-    return 0;
+    SampleGameApplication application;
+    return application.Run();
 }

@@ -1,6 +1,8 @@
 add_library(Engine STATIC
     Core/Engine.cpp
     Core/Engine.h
+    Core/Application/Application.cpp
+    Core/Application/Application.h
 )
 
 target_compile_features(Engine
