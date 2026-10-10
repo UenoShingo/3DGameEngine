@@ -28,11 +28,35 @@ bool EditorApplication::OnInitialize()
         return false;
     }
 
-    // Initialize DXGI and select a D3D12 GPU.
+    MyGameEngine::D3D12DeviceOptions deviceOptions{};
+
+#ifdef _DEBUG
+    deviceOptions.EnableDebugLayer = true;
+    deviceOptions.EnableGpuValidation = false;
+#else
+    deviceOptions.EnableDebugLayer = false;
+    deviceOptions.EnableGpuValidation = false;
+#endif
+
+    // Must run before GraphicsAdapter initialization.
+    if (!MyGameEngine::D3D12Device::
+            ConfigureDebugLayer(deviceOptions))
+    {
+        return false;
+    }
+
     if (!m_GraphicsAdapter.Initialize())
     {
         ENGINE_LOG_ERROR(
-            "Failed to initialize graphics adapter"
+            "GraphicsAdapter initialization failed"
+        );
+        return false;
+    }
+
+    if (!m_D3D12Device.Initialize(m_GraphicsAdapter))
+    {
+        ENGINE_LOG_ERROR(
+            "D3D12Device initialization failed"
         );
         return false;
     }
@@ -66,6 +90,7 @@ void EditorApplication::OnShutdown()
 {
     ENGINE_LOG_INFO("Editor shutting down");
 
+    m_D3D12Device.Shutdown();
     m_GraphicsAdapter.Shutdown();
     m_Window.Destroy();
 }

@@ -9,6 +9,7 @@ add_library(Engine STATIC
     Core/Logging/Logger.h
 
     Core/Debug/Assert.h
+    Core/Debug/HResult.h
 
     Core/Window/Window.cpp
     Core/Window/Window.h
@@ -16,6 +17,9 @@ add_library(Engine STATIC
 
     Graphics/DirectX12/GraphicsAdapter.cpp
     Graphics/DirectX12/GraphicsAdapter.h
+
+    Graphics/DirectX12/D3D12Device.cpp
+    Graphics/DirectX12/D3D12Device.h
 )
 
 target_compile_features(Engine

@@ -28,10 +28,34 @@ bool SampleGameApplication::OnInitialize()
         return false;
     }
 
+    MyGameEngine::D3D12DeviceOptions options{};
+
+#ifdef _DEBUG
+    options.EnableDebugLayer = true;
+    options.EnableGpuValidation = false;
+#else
+    options.EnableDebugLayer = false;
+    options.EnableGpuValidation = false;
+#endif
+
+    if (!MyGameEngine::D3D12Device::
+            ConfigureDebugLayer(options))
+    {
+        return false;
+    }
+
     if (!m_GraphicsAdapter.Initialize())
     {
         ENGINE_LOG_ERROR(
             "Failed to initialize SampleGame GPU"
+        );
+        return false;
+    }
+
+    if (!m_D3D12Device.Initialize(m_GraphicsAdapter))
+    {
+        ENGINE_LOG_ERROR(
+            "SampleGame D3D12Device initialization failed"
         );
         return false;
     }
@@ -64,6 +88,7 @@ void SampleGameApplication::OnShutdown()
 {
     ENGINE_LOG_INFO("SampleGame shutting down");
 
+    m_D3D12Device.Shutdown();
     m_GraphicsAdapter.Shutdown();
     m_Window.Destroy();
 }

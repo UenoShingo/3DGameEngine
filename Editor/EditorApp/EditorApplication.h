@@ -5,6 +5,7 @@
 #include "Core/Window/WindowEvent.h"
 
 #include "Graphics/DirectX12/GraphicsAdapter.h"
+#include "Graphics/DirectX12/D3D12Device.h"
 
 class EditorApplication final
     : public MyGameEngine::Application
@@ -25,4 +26,5 @@ private:
 
     MyGameEngine::Window m_Window;
     MyGameEngine::GraphicsAdapter m_GraphicsAdapter;
+    MyGameEngine::D3D12Device m_D3D12Device;
 };
