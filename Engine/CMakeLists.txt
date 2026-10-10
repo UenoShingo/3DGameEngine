@@ -13,6 +13,9 @@ add_library(Engine STATIC
     Core/Window/Window.cpp
     Core/Window/Window.h
     Core/Window/WindowEvent.h
+
+    Graphics/DirectX12/GraphicsAdapter.cpp
+    Graphics/DirectX12/GraphicsAdapter.h
 )
 
 target_compile_features(Engine
@@ -24,8 +27,12 @@ target_include_directories(Engine
 )
 
 target_link_libraries(Engine
-    PUBLIC spdlog::spdlog_header_only
-    PRIVATE user32 gdi32
+    PUBLIC
+        spdlog::spdlog_header_only
+        user32
+        gdi32
+        dxgi
+        d3d12
 )
 
 target_compile_options(Engine
@@ -40,6 +47,7 @@ target_compile_definitions(Engine
         WIN32_LEAN_AND_MEAN
         NOMINMAX
 
+        "$<$<CONFIG:Debug>:_DEBUG>"
         "$<$<CONFIG:Debug>:SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_DEBUG>"
         "$<$<NOT:$<CONFIG:Debug>>:SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_INFO>"
 )

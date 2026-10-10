@@ -4,6 +4,8 @@
 #include "Core/Window/Window.h"
 #include "Core/Window/WindowEvent.h"
 
+#include "Graphics/DirectX12/GraphicsAdapter.h"
+
 class SampleGameApplication final
     : public MyGameEngine::Application
 {
@@ -22,4 +24,5 @@ private:
     );
 
     MyGameEngine::Window m_Window;
+    MyGameEngine::GraphicsAdapter m_GraphicsAdapter;
 };

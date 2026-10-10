@@ -28,6 +28,15 @@ bool EditorApplication::OnInitialize()
         return false;
     }
 
+    // Initialize DXGI and select a D3D12 GPU.
+    if (!m_GraphicsAdapter.Initialize())
+    {
+        ENGINE_LOG_ERROR(
+            "Failed to initialize graphics adapter"
+        );
+        return false;
+    }
+
     m_Window.Show();
 
     ENGINE_LOG_INFO("Editor initialized");
@@ -57,6 +66,7 @@ void EditorApplication::OnShutdown()
 {
     ENGINE_LOG_INFO("Editor shutting down");
 
+    m_GraphicsAdapter.Shutdown();
     m_Window.Destroy();
 }
 

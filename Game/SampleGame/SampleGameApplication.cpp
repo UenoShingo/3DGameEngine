@@ -28,6 +28,14 @@ bool SampleGameApplication::OnInitialize()
         return false;
     }
 
+    if (!m_GraphicsAdapter.Initialize())
+    {
+        ENGINE_LOG_ERROR(
+            "Failed to initialize SampleGame GPU"
+        );
+        return false;
+    }
+
     m_Window.Show();
 
     ENGINE_LOG_INFO("SampleGame initialized");
@@ -56,6 +64,7 @@ void SampleGameApplication::OnShutdown()
 {
     ENGINE_LOG_INFO("SampleGame shutting down");
 
+    m_GraphicsAdapter.Shutdown();
     m_Window.Destroy();
 }
 
