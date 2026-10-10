@@ -69,21 +69,7 @@ bool EditorApplication::OnInitialize()
         return false;
     }
 
-    // Commit 009: record and submit one empty command list.
-    if (!m_GraphicsContext.Begin())
-    {
-        return false;
-    }
-
-    if (!m_GraphicsContext.Close())
-    {
-        return false;
-    }
-
-    if (!m_GraphicsContext.Execute())
-    {
-        return false;
-    }
+    m_FrameNumber = 0;
 
     MyGameEngine::SwapChainProperties swapChainProperties{};
     swapChainProperties.Width = m_Window.GetWidth();
@@ -130,6 +116,29 @@ void EditorApplication::OnUpdate()
         return;
     }
 
+    const auto frameIndex =
+        static_cast<std::uint32_t>(
+            m_FrameNumber %
+            MyGameEngine::GraphicsContext::FrameCount
+        );
+
+    if (!m_GraphicsContext.BeginFrame(frameIndex))
+    {
+        ENGINE_LOG_CRITICAL("Editor BeginFrame failed");
+        RequestExit();
+        return;
+    }
+
+    // Commit 011: no rendering commands are recorded yet.
+    if (!m_GraphicsContext.EndFrame())
+    {
+        ENGINE_LOG_CRITICAL("Editor EndFrame failed");
+        RequestExit();
+        return;
+    }
+
+    ++m_FrameNumber;
+
     // Temporary idle delay.
     // Replace with frame timing in later commits.
     Sleep(16);
@@ -139,8 +148,14 @@ void EditorApplication::OnShutdown()
 {
     ENGINE_LOG_INFO("Editor shutting down");
 
+    if (!m_GraphicsContext.Shutdown())
+    {
+        ENGINE_LOG_CRITICAL(
+            "GraphicsContext shutdown failed"
+        );
+    }
+
     m_SwapChain.Shutdown();
-    m_GraphicsContext.Shutdown();
     m_D3D12Device.Shutdown();
     m_GraphicsAdapter.Shutdown();
     m_Window.Destroy();

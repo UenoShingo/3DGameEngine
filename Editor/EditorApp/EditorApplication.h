@@ -9,6 +9,8 @@
 #include "Graphics/DirectX12/GraphicsContext.h"
 #include "Graphics/DirectX12/SwapChain.h"
 
+#include <cstdint>
+
 class EditorApplication final
     : public MyGameEngine::Application
 {
@@ -31,4 +33,5 @@ private:
     MyGameEngine::D3D12Device m_D3D12Device;
     MyGameEngine::GraphicsContext m_GraphicsContext;
     MyGameEngine::SwapChain m_SwapChain;
+    std::uint64_t m_FrameNumber = 0;
 };

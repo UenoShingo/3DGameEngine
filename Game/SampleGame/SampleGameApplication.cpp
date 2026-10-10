@@ -68,20 +68,7 @@ bool SampleGameApplication::OnInitialize()
         return false;
     }
 
-    if (!m_GraphicsContext.Begin())
-    {
-        return false;
-    }
-
-    if (!m_GraphicsContext.Close())
-    {
-        return false;
-    }
-
-    if (!m_GraphicsContext.Execute())
-    {
-        return false;
-    }
+    m_FrameNumber = 0;
 
     MyGameEngine::SwapChainProperties swapChainProperties{};
     swapChainProperties.Width = m_Window.GetWidth();
@@ -122,6 +109,33 @@ void SampleGameApplication::OnUpdate()
         return;
     }
 
+    const auto frameIndex =
+        static_cast<std::uint32_t>(
+            m_FrameNumber %
+            MyGameEngine::GraphicsContext::FrameCount
+        );
+
+    if (!m_GraphicsContext.BeginFrame(frameIndex))
+    {
+        ENGINE_LOG_CRITICAL(
+            "SampleGame BeginFrame failed"
+        );
+        RequestExit();
+        return;
+    }
+
+    // Commit 012 will add rendering commands.
+    if (!m_GraphicsContext.EndFrame())
+    {
+        ENGINE_LOG_CRITICAL(
+            "SampleGame EndFrame failed"
+        );
+        RequestExit();
+        return;
+    }
+
+    ++m_FrameNumber;
+
     Sleep(16);
 }
 
@@ -129,8 +143,14 @@ void SampleGameApplication::OnShutdown()
 {
     ENGINE_LOG_INFO("SampleGame shutting down");
 
+    if (!m_GraphicsContext.Shutdown())
+    {
+        ENGINE_LOG_CRITICAL(
+            "SampleGame GPU synchronization failed"
+        );
+    }
+
     m_SwapChain.Shutdown();
-    m_GraphicsContext.Shutdown();
     m_D3D12Device.Shutdown();
     m_GraphicsAdapter.Shutdown();
     m_Window.Destroy();

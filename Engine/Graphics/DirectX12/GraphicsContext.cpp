@@ -4,125 +4,38 @@
 #include "Core/Logging/Logger.h"
 #include "Graphics/DirectX12/D3D12Device.h"
 
-#include <Windows.h>
-
 namespace MyGameEngine
 {
     GraphicsContext::~GraphicsContext()
     {
-        Shutdown();
+        if (!Shutdown())
+        {
+            ENGINE_LOG_CRITICAL(
+                "GraphicsContext destroyed without "
+                "confirmed GPU completion"
+            );
+        }
     }
 
-    bool GraphicsContext::Initialize(
-        const D3D12Device& device)
+    bool GraphicsContext::Initialize(const D3D12Device& device)
     {
-        if (m_State != CommandContextState::Uninitialized)
+        if (m_State != CommandContextState::Uninitialized ||
+            !device.IsValid())
         {
-            ENGINE_LOG_ERROR(
-                "GraphicsContext already initialized"
-            );
+            ENGINE_LOG_ERROR("Invalid GraphicsContext initialization");
             return false;
         }
 
-        if (!device.IsValid())
-        {
-            ENGINE_LOG_ERROR(
-                "Invalid D3D12Device"
-            );
-            return false;
-        }
+        m_Device = device.GetDevice();
 
-        ID3D12Device* nativeDevice = device.GetDevice();
-
-        // Create a direct command queue.
         D3D12_COMMAND_QUEUE_DESC queueDesc{};
         queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
         queueDesc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
         queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
-        queueDesc.NodeMask = 0;
 
-        HRESULT hr = nativeDevice->CreateCommandQueue(
+        HRESULT hr = m_Device->CreateCommandQueue(
             &queueDesc,
-            IID_PPV_ARGS(
-                m_CommandQueue.GetAddressOf()
-            )
-        );
-
-        if (!ENGINE_CHECK_HR(hr))
-        {
-            Shutdown();
-            return false;
-        }
-
-        ENGINE_LOG_INFO("Graphics Command Queue created");
-
-        // Create a command allocator.
-        hr = nativeDevice->CreateCommandAllocator(
-            D3D12_COMMAND_LIST_TYPE_DIRECT,
-            IID_PPV_ARGS(
-                m_CommandAllocator.GetAddressOf()
-            )
-        );
-
-        if (!ENGINE_CHECK_HR(hr))
-        {
-            Shutdown();
-            return false;
-        }
-
-        ENGINE_LOG_INFO("Graphics Command Allocator created");
-
-        // Create a graphics command list.
-        hr = nativeDevice->CreateCommandList(
-            0,
-            D3D12_COMMAND_LIST_TYPE_DIRECT,
-            m_CommandAllocator.Get(),
-            nullptr,
-            IID_PPV_ARGS(
-                m_CommandList.GetAddressOf()
-            )
-        );
-
-        if (!ENGINE_CHECK_HR(hr))
-        {
-            Shutdown();
-            return false;
-        }
-
-        // A newly created command list is recording.
-        // Close it before the first Reset.
-        hr = m_CommandList->Close();
-
-        if (!ENGINE_CHECK_HR(hr))
-        {
-            Shutdown();
-            return false;
-        }
-
-        m_State = CommandContextState::Ready;
-
-        ENGINE_LOG_INFO(
-            "GraphicsContext initialized successfully"
-        );
-
-        return true;
-    }
-
-    bool GraphicsContext::Begin()
-    {
-        if (m_State != CommandContextState::Ready)
-        {
-            ENGINE_LOG_ERROR(
-                "Begin rejected: invalid context state"
-            );
-            return false;
-        }
-
-        // The allocator has never been submitted.
-        // It is safe to use it for this first recording.
-        const HRESULT hr = m_CommandList->Reset(
-            m_CommandAllocator.Get(),
-            nullptr
+            IID_PPV_ARGS(m_CommandQueue.GetAddressOf())
         );
 
         if (!ENGINE_CHECK_HR(hr))
@@ -131,28 +44,92 @@ namespace MyGameEngine
             return false;
         }
 
-        m_State = CommandContextState::Recording;
+        for (auto& frame : m_Frames)
+        {
+            hr = m_Device->CreateCommandAllocator(
+                D3D12_COMMAND_LIST_TYPE_DIRECT,
+                IID_PPV_ARGS(frame.CommandAllocator.GetAddressOf())
+            );
 
-        ENGINE_LOG_DEBUG(
-            "Command List recording started"
+            if (!ENGINE_CHECK_HR(hr))
+            {
+                m_State = CommandContextState::Failed;
+                return false;
+            }
+        }
+
+        hr = m_Device->CreateCommandList(
+            0,
+            D3D12_COMMAND_LIST_TYPE_DIRECT,
+            m_Frames[0].CommandAllocator.Get(),
+            nullptr,
+            IID_PPV_ARGS(m_CommandList.GetAddressOf())
         );
 
+        if (!ENGINE_CHECK_HR(hr) ||
+            !ENGINE_CHECK_HR(m_CommandList->Close()))
+        {
+            m_State = CommandContextState::Failed;
+            return false;
+        }
+
+        if (!m_Fence.Initialize(m_Device.Get()))
+        {
+            m_State = CommandContextState::Failed;
+            return false;
+        }
+
+        m_CurrentFrameIndex = 0;
+        m_HasUntrackedSubmission = false;
+        m_State = CommandContextState::Ready;
+
+        ENGINE_LOG_INFO(
+            "GraphicsContext initialized with {} frames",
+            FrameCount
+        );
         return true;
     }
 
-    bool GraphicsContext::Close()
+    bool GraphicsContext::BeginFrame(std::uint32_t frameIndex)
     {
-        if (m_State != CommandContextState::Recording)
+        if (m_State != CommandContextState::Ready ||
+            frameIndex >= FrameCount)
         {
             ENGINE_LOG_ERROR(
-                "Close rejected: command list not recording"
+                "BeginFrame rejected: invalid state or index"
             );
             return false;
         }
 
-        const HRESULT hr = m_CommandList->Close();
+        FrameResource& frame = m_Frames[frameIndex];
 
-        if (!ENGINE_CHECK_HR(hr))
+        if (!m_Fence.Wait(frame.FenceValue) ||
+            !ENGINE_CHECK_HR(frame.CommandAllocator->Reset()) ||
+            !ENGINE_CHECK_HR(
+                m_CommandList->Reset(
+                    frame.CommandAllocator.Get(),
+                    nullptr)))
+        {
+            m_State = CommandContextState::Failed;
+            return false;
+        }
+
+        m_CurrentFrameIndex = frameIndex;
+        m_State = CommandContextState::Recording;
+
+        ENGINE_LOG_DEBUG("BeginFrame: {}", frameIndex);
+        return true;
+    }
+
+    bool GraphicsContext::EndFrame()
+    {
+        if (m_State != CommandContextState::Recording)
+        {
+            ENGINE_LOG_ERROR("EndFrame rejected: not recording");
+            return false;
+        }
+
+        if (!ENGINE_CHECK_HR(m_CommandList->Close()))
         {
             m_State = CommandContextState::Failed;
             return false;
@@ -160,184 +137,172 @@ namespace MyGameEngine
 
         m_State = CommandContextState::Closed;
 
-        ENGINE_LOG_DEBUG(
-            "Command List recording completed"
-        );
+        ID3D12CommandList* lists[] = { m_CommandList.Get() };
+        m_CommandQueue->ExecuteCommandLists(1, lists);
+        m_HasUntrackedSubmission = true;
 
-        return true;
-    }
+        std::uint64_t fenceValue = 0;
 
-    bool GraphicsContext::Execute()
-    {
-        if (m_State != CommandContextState::Closed)
+        if (!m_Fence.Signal(m_CommandQueue.Get(), fenceValue))
         {
-            ENGINE_LOG_ERROR(
-                "Execute rejected: command list not closed"
-            );
+            m_State = CommandContextState::Failed;
             return false;
         }
 
-        ID3D12CommandList* commandLists[] =
-        {
-            m_CommandList.Get()
-        };
+        m_Frames[m_CurrentFrameIndex].FenceValue = fenceValue;
+        m_HasUntrackedSubmission = false;
+        m_State = CommandContextState::Ready;
 
-        // ExecuteCommandLists returns void.
-        // Validation errors are reported by the debug layer.
-        m_CommandQueue->ExecuteCommandLists(
-            1,
-            commandLists
+        ENGINE_LOG_DEBUG(
+            "EndFrame: {} | Fence: {}",
+            m_CurrentFrameIndex,
+            fenceValue
         );
-
-        m_State = CommandContextState::Submitted;
-
-        ENGINE_LOG_INFO(
-            "Graphics Command List submitted to GPU"
-        );
-
         return true;
     }
 
-    void GraphicsContext::Shutdown() noexcept
+    bool GraphicsContext::WaitForGpu()
     {
-        if (m_State == CommandContextState::Recording &&
-            m_CommandList)
+        if (!m_CommandQueue || !m_Fence.IsValid())
         {
-            // Best-effort closure before resource release.
+            ENGINE_LOG_ERROR("WaitForGpu: context not initialized");
+            return false;
+        }
+
+        if (m_State == CommandContextState::Recording)
+        {
+            ENGINE_LOG_ERROR("WaitForGpu called during recording");
+            return false;
+        }
+
+        if (!m_Fence.WaitForGpu(m_CommandQueue.Get()))
+        {
+            ENGINE_LOG_ERROR("GPU synchronization failed");
+            m_State = CommandContextState::Failed;
+            return false;
+        }
+
+        m_HasUntrackedSubmission = false;
+        ENGINE_LOG_DEBUG("GPU queue is idle");
+        return true;
+    }
+
+    bool GraphicsContext::PrepareForResize()
+    {
+        if (m_State != CommandContextState::Ready)
+        {
+            ENGINE_LOG_ERROR("Resize requires an idle recording state");
+            return false;
+        }
+
+        if (!WaitForGpu())
+        {
+            return false;
+        }
+
+        for (auto& frame : m_Frames)
+        {
+            frame.FenceValue = 0;
+        }
+
+        ENGINE_LOG_INFO("GPU synchronized for SwapChain resize");
+        return true;
+    }
+
+    bool GraphicsContext::Shutdown()
+    {
+        if (m_State == CommandContextState::Uninitialized)
+        {
+            return true;
+        }
+
+        if (m_State == CommandContextState::Recording && m_CommandList)
+        {
             const HRESULT hr = m_CommandList->Close();
 
             if (FAILED(hr))
             {
                 ENGINE_LOG_ERROR(
-                    "Command List close during shutdown "
-                    "failed: 0x{:08X}",
+                    "CommandList close failed: 0x{:08X}",
                     static_cast<unsigned int>(hr)
                 );
+            }
+            else
+            {
+                m_State = CommandContextState::Closed;
             }
         }
 
-        if (m_State == CommandContextState::Submitted &&
-            m_CommandQueue &&
-            m_CommandList)
+        if (m_CommandQueue && m_Fence.IsValid() && !WaitForGpu())
         {
-            Microsoft::WRL::ComPtr<ID3D12Device> device;
-            HRESULT hr = m_CommandList->GetDevice(
-                IID_PPV_ARGS(device.GetAddressOf())
-            );
-
-            Microsoft::WRL::ComPtr<ID3D12Fence> shutdownFence;
-
-            if (SUCCEEDED(hr))
-            {
-                hr = device->CreateFence(
-                    0,
-                    D3D12_FENCE_FLAG_NONE,
-                    IID_PPV_ARGS(shutdownFence.GetAddressOf())
-                );
-            }
-
-            constexpr UINT64 shutdownFenceValue = 1;
-
-            if (SUCCEEDED(hr))
-            {
-                hr = m_CommandQueue->Signal(
-                    shutdownFence.Get(),
-                    shutdownFenceValue
-                );
-            }
-
-            HANDLE completionEvent = nullptr;
-
-            if (SUCCEEDED(hr))
-            {
-                completionEvent = CreateEventW(
-                    nullptr,
-                    FALSE,
-                    FALSE,
-                    nullptr
-                );
-
-                if (completionEvent == nullptr)
-                {
-                    hr = HRESULT_FROM_WIN32(GetLastError());
-                }
-            }
-
-            if (SUCCEEDED(hr) &&
-                shutdownFence->GetCompletedValue() <
-                    shutdownFenceValue)
-            {
-                hr = shutdownFence->SetEventOnCompletion(
-                    shutdownFenceValue,
-                    completionEvent
-                );
-
-                if (SUCCEEDED(hr))
-                {
-                    const DWORD waitResult = WaitForSingleObject(
-                        completionEvent,
-                        INFINITE
-                    );
-
-                    if (waitResult != WAIT_OBJECT_0)
-                    {
-                        hr = HRESULT_FROM_WIN32(GetLastError());
-                    }
-                }
-            }
-
-            if (completionEvent != nullptr)
-            {
-                CloseHandle(completionEvent);
-            }
-
-            if (FAILED(hr))
-            {
-                ENGINE_LOG_ERROR(
-                    "GPU completion wait during shutdown "
-                    "failed: 0x{:08X}",
-                    static_cast<unsigned int>(hr)
-                );
-            }
+            ENGINE_LOG_CRITICAL("GPU work could not be synchronized");
+            m_State = CommandContextState::Failed;
+            return false;
         }
 
         m_CommandList.Reset();
-        m_CommandAllocator.Reset();
-        m_CommandQueue.Reset();
 
+        for (auto& frame : m_Frames)
+        {
+            frame.CommandAllocator.Reset();
+            frame.FenceValue = 0;
+        }
+
+        m_Fence.Shutdown();
+        m_CommandQueue.Reset();
+        m_Device.Reset();
+
+        m_CurrentFrameIndex = 0;
+        m_HasUntrackedSubmission = false;
         m_State = CommandContextState::Uninitialized;
+
+        ENGINE_LOG_INFO("GraphicsContext shutdown");
+        return true;
     }
 
     bool GraphicsContext::IsValid() const noexcept
     {
-        return m_CommandQueue != nullptr &&
-            m_CommandAllocator != nullptr &&
-            m_CommandList != nullptr &&
-            m_State != CommandContextState::Uninitialized &&
+        if (!m_Device || !m_CommandQueue ||
+            !m_CommandList || !m_Fence.IsValid())
+        {
+            return false;
+        }
+
+        for (const auto& frame : m_Frames)
+        {
+            if (!frame.CommandAllocator)
+            {
+                return false;
+            }
+        }
+
+        return m_State != CommandContextState::Uninitialized &&
             m_State != CommandContextState::Failed;
     }
 
-    CommandContextState
-    GraphicsContext::GetState() const noexcept
+    CommandContextState GraphicsContext::GetState() const noexcept
     {
         return m_State;
     }
 
-    ID3D12CommandQueue*
-    GraphicsContext::GetCommandQueue() const noexcept
+    ID3D12CommandQueue* GraphicsContext::GetCommandQueue() const noexcept
     {
         return m_CommandQueue.Get();
     }
 
-    ID3D12CommandAllocator*
-    GraphicsContext::GetCommandAllocator() const noexcept
-    {
-        return m_CommandAllocator.Get();
-    }
-
-    ID3D12GraphicsCommandList*
-    GraphicsContext::GetCommandList() const noexcept
+    ID3D12GraphicsCommandList* GraphicsContext::GetCommandList() const noexcept
     {
         return m_CommandList.Get();
+    }
+
+    std::uint32_t GraphicsContext::GetCurrentFrameIndex() const noexcept
+    {
+        return m_CurrentFrameIndex;
+    }
+
+    std::uint64_t GraphicsContext::GetFrameFenceValue(
+        std::uint32_t index) const noexcept
+    {
+        return index < FrameCount ? m_Frames[index].FenceValue : 0;
     }
 }
