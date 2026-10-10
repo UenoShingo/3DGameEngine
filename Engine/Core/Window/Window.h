@@ -11,7 +11,10 @@
 #include <Windows.h>
 
 #include <cstdint>
+#include <functional>
 #include <string>
+
+#include "Core/Window/WindowEvent.h"
 
 namespace MyGameEngine
 {
@@ -25,6 +28,9 @@ namespace MyGameEngine
     class Window final
     {
     public:
+        using EventCallback =
+            std::function<void(const WindowEvent&)>;
+
         Window() = default;
         ~Window();
 
@@ -38,7 +44,14 @@ namespace MyGameEngine
         bool Create(const WindowProperties& properties);
 
         void Show() const;
+
         void Destroy() noexcept;
+
+        // Returns false when WM_QUIT is received.
+        [[nodiscard]]
+        bool ProcessMessages();
+
+        void SetEventCallback(EventCallback callback);
 
         [[nodiscard]]
         HWND GetHandle() const noexcept;
@@ -60,6 +73,17 @@ namespace MyGameEngine
             LPARAM lParam
         );
 
+        LRESULT HandleMessage(
+            HWND hwnd,
+            UINT message,
+            WPARAM wParam,
+            LPARAM lParam
+        );
+
+        void DispatchEvent(
+            const WindowEvent& event
+        ) noexcept;
+
         HWND m_Handle = nullptr;
         HINSTANCE m_Instance = nullptr;
 
@@ -67,6 +91,8 @@ namespace MyGameEngine
         std::uint32_t m_Height = 0;
 
         bool m_ClassRegistered = false;
+
+        EventCallback m_EventCallback;
 
         static constexpr const wchar_t* ClassName =
             L"MyGameEngineWindowClass";

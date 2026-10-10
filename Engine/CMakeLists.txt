@@ -12,6 +12,7 @@ add_library(Engine STATIC
 
     Core/Window/Window.cpp
     Core/Window/Window.h
+    Core/Window/WindowEvent.h
 )
 
 target_compile_features(Engine

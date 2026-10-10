@@ -1,14 +1,21 @@
 #include "SampleGameApplication.h"
 
-#include "Core/Debug/Assert.h"
 #include "Core/Logging/Logger.h"
+
+#include <Windows.h>
 
 bool SampleGameApplication::OnInitialize()
 {
     ENGINE_LOG_INFO("SampleGame initializing");
 
-    MyGameEngine::WindowProperties properties;
+    m_Window.SetEventCallback(
+        [this](const MyGameEngine::WindowEvent& event)
+        {
+            OnWindowEvent(event);
+        }
+    );
 
+    MyGameEngine::WindowProperties properties;
     properties.Title = L"MyGameEngine SampleGame";
     properties.Width = 1280;
     properties.Height = 720;
@@ -23,13 +30,6 @@ bool SampleGameApplication::OnInitialize()
 
     m_Window.Show();
 
-    ENGINE_ASSERT(
-        m_Window.IsValid(),
-        "SampleGame window must be valid"
-    );
-
-    m_FrameCount = 0;
-
     ENGINE_LOG_INFO("SampleGame initialized");
 
     return true;
@@ -37,19 +37,19 @@ bool SampleGameApplication::OnInitialize()
 
 void SampleGameApplication::OnUpdate()
 {
-    ++m_FrameCount;
-
-    ENGINE_LOG_DEBUG(
-        "SampleGame frame: {}",
-        m_FrameCount
-    );
-
-    Sleep(700);
-
-    if (m_FrameCount >= 3)
+    if (!m_Window.ProcessMessages())
     {
         RequestExit();
+        return;
     }
+
+    if (!m_Window.IsValid())
+    {
+        RequestExit();
+        return;
+    }
+
+    Sleep(16);
 }
 
 void SampleGameApplication::OnShutdown()
@@ -57,4 +57,51 @@ void SampleGameApplication::OnShutdown()
     ENGINE_LOG_INFO("SampleGame shutting down");
 
     m_Window.Destroy();
+}
+
+void SampleGameApplication::OnWindowEvent(
+    const MyGameEngine::WindowEvent& event)
+{
+    using MyGameEngine::WindowEventType;
+
+    switch (event.Type)
+    {
+    case WindowEventType::Closed:
+        ENGINE_LOG_INFO("SampleGame window closed");
+        RequestExit();
+        break;
+
+    case WindowEventType::Resized:
+        ENGINE_LOG_INFO(
+            "SampleGame resized: {}x{}",
+            event.Width,
+            event.Height
+        );
+        break;
+
+    case WindowEventType::FocusGained:
+        ENGINE_LOG_INFO("SampleGame focus gained");
+        break;
+
+    case WindowEventType::FocusLost:
+        ENGINE_LOG_INFO("SampleGame focus lost");
+        break;
+
+    case WindowEventType::KeyDown:
+        if (!event.IsRepeat)
+        {
+            ENGINE_LOG_DEBUG(
+                "SampleGame key down: {}",
+                event.KeyCode
+            );
+        }
+        break;
+
+    case WindowEventType::KeyUp:
+        ENGINE_LOG_DEBUG(
+            "SampleGame key up: {}",
+            event.KeyCode
+        );
+        break;
+    }
 }

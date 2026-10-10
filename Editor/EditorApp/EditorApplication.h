@@ -2,8 +2,7 @@
 
 #include "Core/Application/Application.h"
 #include "Core/Window/Window.h"
-
-#include <cstdint>
+#include "Core/Window/WindowEvent.h"
 
 class EditorApplication final
     : public MyGameEngine::Application
@@ -18,7 +17,9 @@ protected:
     void OnShutdown() override;
 
 private:
-    MyGameEngine::Window m_Window;
+    void OnWindowEvent(
+        const MyGameEngine::WindowEvent& event
+    );
 
-    std::uint32_t m_FrameCount = 0;
+    MyGameEngine::Window m_Window;
 };
