@@ -60,6 +60,29 @@ bool SampleGameApplication::OnInitialize()
         return false;
     }
 
+    if (!m_GraphicsContext.Initialize(m_D3D12Device))
+    {
+        ENGINE_LOG_ERROR(
+            "SampleGame GraphicsContext initialization failed"
+        );
+        return false;
+    }
+
+    if (!m_GraphicsContext.Begin())
+    {
+        return false;
+    }
+
+    if (!m_GraphicsContext.Close())
+    {
+        return false;
+    }
+
+    if (!m_GraphicsContext.Execute())
+    {
+        return false;
+    }
+
     m_Window.Show();
 
     ENGINE_LOG_INFO("SampleGame initialized");
@@ -88,6 +111,7 @@ void SampleGameApplication::OnShutdown()
 {
     ENGINE_LOG_INFO("SampleGame shutting down");
 
+    m_GraphicsContext.Shutdown();
     m_D3D12Device.Shutdown();
     m_GraphicsAdapter.Shutdown();
     m_Window.Destroy();

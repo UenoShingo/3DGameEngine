@@ -61,6 +61,30 @@ bool EditorApplication::OnInitialize()
         return false;
     }
 
+    if (!m_GraphicsContext.Initialize(m_D3D12Device))
+    {
+        ENGINE_LOG_ERROR(
+            "GraphicsContext initialization failed"
+        );
+        return false;
+    }
+
+    // Commit 009: record and submit one empty command list.
+    if (!m_GraphicsContext.Begin())
+    {
+        return false;
+    }
+
+    if (!m_GraphicsContext.Close())
+    {
+        return false;
+    }
+
+    if (!m_GraphicsContext.Execute())
+    {
+        return false;
+    }
+
     m_Window.Show();
 
     ENGINE_LOG_INFO("Editor initialized");
@@ -90,6 +114,7 @@ void EditorApplication::OnShutdown()
 {
     ENGINE_LOG_INFO("Editor shutting down");
 
+    m_GraphicsContext.Shutdown();
     m_D3D12Device.Shutdown();
     m_GraphicsAdapter.Shutdown();
     m_Window.Destroy();
