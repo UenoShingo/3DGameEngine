@@ -9,6 +9,9 @@ add_library(Engine STATIC
     Core/Logging/Logger.h
 
     Core/Debug/Assert.h
+
+    Core/Window/Window.cpp
+    Core/Window/Window.h
 )
 
 target_compile_features(Engine
@@ -21,6 +24,7 @@ target_include_directories(Engine
 
 target_link_libraries(Engine
     PUBLIC spdlog::spdlog_header_only
+    PRIVATE user32 gdi32
 )
 
 target_compile_options(Engine
@@ -28,7 +32,13 @@ target_compile_options(Engine
 )
 
 # Compile-time log filtering
-target_compile_definitions(Engine PUBLIC
-    "$<$<CONFIG:Debug>:SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_DEBUG>"
-    "$<$<NOT:$<CONFIG:Debug>>:SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_INFO>"
+target_compile_definitions(Engine
+    PUBLIC
+        UNICODE
+        _UNICODE
+        WIN32_LEAN_AND_MEAN
+        NOMINMAX
+
+        "$<$<CONFIG:Debug>:SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_DEBUG>"
+        "$<$<NOT:$<CONFIG:Debug>>:SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_INFO>"
 )

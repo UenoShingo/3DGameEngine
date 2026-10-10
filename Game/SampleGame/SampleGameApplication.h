@@ -1,6 +1,9 @@
 #pragma once
 
 #include "Core/Application/Application.h"
+#include "Core/Window/Window.h"
+
+#include <cstdint>
 
 class SampleGameApplication final
     : public MyGameEngine::Application
@@ -15,5 +18,7 @@ protected:
     void OnShutdown() override;
 
 private:
-    unsigned int m_FrameCount = 0;
+    MyGameEngine::Window m_Window;
+
+    std::uint32_t m_FrameCount = 0;
 };

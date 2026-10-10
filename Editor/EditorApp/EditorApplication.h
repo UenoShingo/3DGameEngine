@@ -1,8 +1,12 @@
 #pragma once
 
 #include "Core/Application/Application.h"
+#include "Core/Window/Window.h"
 
-class EditorApplication final : public MyGameEngine::Application
+#include <cstdint>
+
+class EditorApplication final
+    : public MyGameEngine::Application
 {
 public:
     EditorApplication() = default;
@@ -14,5 +18,7 @@ protected:
     void OnShutdown() override;
 
 private:
-    unsigned int m_FrameCount = 0;
+    MyGameEngine::Window m_Window;
+
+    std::uint32_t m_FrameCount = 0;
 };

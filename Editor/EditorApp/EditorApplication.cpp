@@ -7,12 +7,28 @@ bool EditorApplication::OnInitialize()
 {
     ENGINE_LOG_INFO("Editor initializing");
 
-    m_FrameCount = 0;
+    MyGameEngine::WindowProperties properties;
+
+    properties.Title = L"MyGameEngine Editor";
+    properties.Width = 1280;
+    properties.Height = 720;
+
+    if (!m_Window.Create(properties))
+    {
+        ENGINE_LOG_ERROR(
+            "Failed to create Editor window"
+        );
+        return false;
+    }
+
+    m_Window.Show();
 
     ENGINE_ASSERT(
-        m_FrameCount == 0,
-        "Frame count must start at zero"
+        m_Window.IsValid(),
+        "Editor window must be valid"
     );
+
+    m_FrameCount = 0;
 
     ENGINE_LOG_INFO("Editor initialized");
 
@@ -28,9 +44,12 @@ void EditorApplication::OnUpdate()
         m_FrameCount
     );
 
+    // Temporary visualization for Commit 005.
+    // Commit 006 introduces the Win32 message loop.
+    Sleep(700);
+
     if (m_FrameCount >= 3)
     {
-        ENGINE_LOG_INFO("Editor exit requested");
         RequestExit();
     }
 }
@@ -38,4 +57,6 @@ void EditorApplication::OnUpdate()
 void EditorApplication::OnShutdown()
 {
     ENGINE_LOG_INFO("Editor shutting down");
+
+    m_Window.Destroy();
 }
