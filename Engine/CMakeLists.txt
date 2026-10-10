@@ -34,6 +34,10 @@ add_library(Engine STATIC
 
     Graphics/Renderer/Renderer.cpp
     Graphics/Renderer/Renderer.h
+
+    Graphics/Shader/CompiledShader.h
+    Graphics/Shader/ShaderCompiler.cpp
+    Graphics/Shader/ShaderCompiler.h
 )
 
 target_compile_features(Engine
@@ -41,7 +45,9 @@ target_compile_features(Engine
 )
 
 target_include_directories(Engine
-    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        "${DXC_INCLUDE_DIR}"
 )
 
 target_link_libraries(Engine
@@ -51,6 +57,7 @@ target_link_libraries(Engine
         gdi32
         dxgi
         d3d12
+        "${DXC_LIBRARY}"
 )
 
 target_compile_options(Engine
@@ -64,6 +71,7 @@ target_compile_definitions(Engine
         _UNICODE
         WIN32_LEAN_AND_MEAN
         NOMINMAX
+        MYGAMEENGINE_SHADER_DIR="${PROJECT_SOURCE_DIR}/Shaders"
 
         "$<$<CONFIG:Debug>:_DEBUG>"
         "$<$<CONFIG:Debug>:SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_DEBUG>"

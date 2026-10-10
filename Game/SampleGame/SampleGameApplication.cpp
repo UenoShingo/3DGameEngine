@@ -4,6 +4,8 @@
 
 #include <Windows.h>
 
+#include <filesystem>
+
 bool SampleGameApplication::OnInitialize()
 {
     ENGINE_LOG_INFO("SampleGame initializing");
@@ -85,6 +87,58 @@ bool SampleGameApplication::OnInitialize()
         );
         return false;
     }
+
+    if (!m_ShaderCompiler.Initialize())
+    {
+        ENGINE_LOG_ERROR(
+            "SampleGame ShaderCompiler initialization failed"
+        );
+        return false;
+    }
+
+    const auto shaderPath =
+        std::filesystem::path(MYGAMEENGINE_SHADER_DIR) /
+        "Basic.hlsl";
+
+    MyGameEngine::ShaderCompileOptions vsOptions{};
+    vsOptions.FilePath = shaderPath;
+    vsOptions.EntryPoint = L"VSMain";
+    vsOptions.Stage = MyGameEngine::ShaderStage::Vertex;
+
+#ifdef _DEBUG
+    vsOptions.EnableDebugInfo = true;
+    vsOptions.EnableOptimization = false;
+#endif
+
+    if (!m_ShaderCompiler.Compile(vsOptions, m_VertexShader))
+    {
+        ENGINE_LOG_ERROR(
+            "SampleGame Vertex Shader compilation failed"
+        );
+        return false;
+    }
+
+    MyGameEngine::ShaderCompileOptions psOptions{};
+    psOptions.FilePath = shaderPath;
+    psOptions.EntryPoint = L"PSMain";
+    psOptions.Stage = MyGameEngine::ShaderStage::Pixel;
+
+#ifdef _DEBUG
+    psOptions.EnableDebugInfo = true;
+    psOptions.EnableOptimization = false;
+#endif
+
+    if (!m_ShaderCompiler.Compile(psOptions, m_PixelShader))
+    {
+        ENGINE_LOG_ERROR(
+            "SampleGame Pixel Shader compilation failed"
+        );
+        return false;
+    }
+
+    ENGINE_LOG_INFO(
+        "SampleGame shaders compiled successfully"
+    );
 
     m_Renderer.SetClearColor(0.12f, 0.20f, 0.16f, 1.0f);
     m_Renderer.SetVSync(true);
@@ -185,6 +239,10 @@ void SampleGameApplication::OnUpdate()
 void SampleGameApplication::OnShutdown()
 {
     ENGINE_LOG_INFO("SampleGame shutting down");
+
+    m_VertexShader.Bytecode.Reset();
+    m_PixelShader.Bytecode.Reset();
+    m_ShaderCompiler.Shutdown();
 
     if (!m_GraphicsContext.Shutdown())
     {

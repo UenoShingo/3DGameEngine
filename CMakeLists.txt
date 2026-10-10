@@ -34,6 +34,39 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(spdlog)
 
+# DirectX Shader Compiler v1.9.2609
+set(DXC_ROOT
+    "${PROJECT_SOURCE_DIR}/ThirdParty/DXC"
+)
+
+set(DXC_INCLUDE_DIR
+    "${DXC_ROOT}/include"
+)
+
+set(DXC_LIBRARY
+    "${DXC_ROOT}/lib/x64/dxcompiler.lib"
+)
+
+set(DXC_RUNTIME_DIR
+    "${DXC_ROOT}/bin/x64"
+)
+
+if(NOT EXISTS "${DXC_INCLUDE_DIR}/dxcapi.h")
+    message(FATAL_ERROR "DXC header not found: dxcapi.h")
+endif()
+
+if(NOT EXISTS "${DXC_LIBRARY}")
+    message(FATAL_ERROR "DXC library not found: dxcompiler.lib")
+endif()
+
+if(NOT EXISTS "${DXC_RUNTIME_DIR}/dxcompiler.dll")
+    message(FATAL_ERROR "DXC runtime not found: dxcompiler.dll")
+endif()
+
+if(NOT EXISTS "${DXC_RUNTIME_DIR}/dxil.dll")
+    message(FATAL_ERROR "DXC runtime not found: dxil.dll")
+endif()
+
 # Projects
 add_subdirectory(Engine)
 add_subdirectory(Editor)

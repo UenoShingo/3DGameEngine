@@ -22,6 +22,11 @@ cmake_install.cmake
 *.lib
 *.exp
 
+# Pinned DXC runtime and import library
+!ThirdParty/DXC/bin/x64/dxcompiler.dll
+!ThirdParty/DXC/bin/x64/dxil.dll
+!ThirdParty/DXC/lib/x64/dxcompiler.lib
+
 # Temporary files
 *.tmp
 *.log
