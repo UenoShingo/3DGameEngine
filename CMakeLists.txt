@@ -5,13 +5,21 @@ project(MyGameEngine
     LANGUAGES CXX
 )
 
+if(NOT WIN32)
+    message(FATAL_ERROR "Windows is required.")
+endif()
+
+if(NOT MSVC)
+    message(FATAL_ERROR "MSVC is required.")
+endif()
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-if(NOT WIN32)
-    message(FATAL_ERROR "Windows is required.")
-endif()
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+include(FetchContent)
 
 add_subdirectory(Engine)
 add_subdirectory(Editor)
