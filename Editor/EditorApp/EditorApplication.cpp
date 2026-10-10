@@ -85,6 +85,31 @@ bool EditorApplication::OnInitialize()
         return false;
     }
 
+    MyGameEngine::SwapChainProperties swapChainProperties{};
+    swapChainProperties.Width = m_Window.GetWidth();
+    swapChainProperties.Height = m_Window.GetHeight();
+    swapChainProperties.Format =
+        DXGI_FORMAT_R8G8B8A8_UNORM;
+
+    if (!m_SwapChain.Initialize(
+            m_GraphicsAdapter,
+            m_D3D12Device,
+            m_GraphicsContext,
+            m_Window.GetHandle(),
+            swapChainProperties))
+    {
+        ENGINE_LOG_ERROR(
+            "Failed to initialize Editor SwapChain"
+        );
+        return false;
+    }
+
+    ENGINE_LOG_INFO(
+        "Editor SwapChain ready: {}x{}",
+        m_SwapChain.GetWidth(),
+        m_SwapChain.GetHeight()
+    );
+
     m_Window.Show();
 
     ENGINE_LOG_INFO("Editor initialized");
@@ -114,6 +139,7 @@ void EditorApplication::OnShutdown()
 {
     ENGINE_LOG_INFO("Editor shutting down");
 
+    m_SwapChain.Shutdown();
     m_GraphicsContext.Shutdown();
     m_D3D12Device.Shutdown();
     m_GraphicsAdapter.Shutdown();
@@ -134,10 +160,12 @@ void EditorApplication::OnWindowEvent(
 
     case WindowEventType::Resized:
         ENGINE_LOG_INFO(
-            "Editor resized: {}x{}",
+            "Editor window resized: {}x{}",
             event.Width,
             event.Height
         );
+        // SwapChain::Resize() will be added after GPU
+        // synchronization is available.
         break;
 
     case WindowEventType::FocusGained:

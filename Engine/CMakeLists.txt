@@ -23,6 +23,9 @@ add_library(Engine STATIC
 
     Graphics/DirectX12/GraphicsContext.cpp
     Graphics/DirectX12/GraphicsContext.h
+
+    Graphics/DirectX12/SwapChain.cpp
+    Graphics/DirectX12/SwapChain.h
 )
 
 target_compile_features(Engine

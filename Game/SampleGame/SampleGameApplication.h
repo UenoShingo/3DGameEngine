@@ -7,6 +7,7 @@
 #include "Graphics/DirectX12/GraphicsAdapter.h"
 #include "Graphics/DirectX12/D3D12Device.h"
 #include "Graphics/DirectX12/GraphicsContext.h"
+#include "Graphics/DirectX12/SwapChain.h"
 
 class SampleGameApplication final
     : public MyGameEngine::Application
@@ -29,4 +30,5 @@ private:
     MyGameEngine::GraphicsAdapter m_GraphicsAdapter;
     MyGameEngine::D3D12Device m_D3D12Device;
     MyGameEngine::GraphicsContext m_GraphicsContext;
+    MyGameEngine::SwapChain m_SwapChain;
 };

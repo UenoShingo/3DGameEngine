@@ -83,6 +83,24 @@ bool SampleGameApplication::OnInitialize()
         return false;
     }
 
+    MyGameEngine::SwapChainProperties swapChainProperties{};
+    swapChainProperties.Width = m_Window.GetWidth();
+    swapChainProperties.Height = m_Window.GetHeight();
+    swapChainProperties.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+
+    if (!m_SwapChain.Initialize(
+            m_GraphicsAdapter,
+            m_D3D12Device,
+            m_GraphicsContext,
+            m_Window.GetHandle(),
+            swapChainProperties))
+    {
+        ENGINE_LOG_ERROR(
+            "Failed to initialize SampleGame SwapChain"
+        );
+        return false;
+    }
+
     m_Window.Show();
 
     ENGINE_LOG_INFO("SampleGame initialized");
@@ -111,6 +129,7 @@ void SampleGameApplication::OnShutdown()
 {
     ENGINE_LOG_INFO("SampleGame shutting down");
 
+    m_SwapChain.Shutdown();
     m_GraphicsContext.Shutdown();
     m_D3D12Device.Shutdown();
     m_GraphicsAdapter.Shutdown();
