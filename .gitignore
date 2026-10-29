@@ -1,68 +1,60 @@
-# Prerequisites
-*.d
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
 
-# Compiled Object files
-*.slo
-*.lo
-*.o
+# Build outputs
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Bb]uild/
+[Oo]ut/
+[Bb]in/
+[Oo]bj/
+
+# C++ intermediate files
 *.obj
-
-# Precompiled Headers
-*.gch
 *.pch
-
-# Linker files
-*.ilk
-
-# Debugger Files
 *.pdb
+*.ilk
+*.idb
+*.ipch
+*.tlog
+*.lastbuildstate
+*.recipe
+*.VC.db
+*.VC.opendb
 
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
-*.so.*
-
-# Fortran module files
-*.mod
-*.smod
-
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
-
-# Executables
-*.exe
-*.out
-*.app
-
-# Build directories
-build/
-Build/
-build-*/
-
-# CMake generated files
-CMakeFiles/
-CMakeCache.txt
-cmake_install.cmake
-Makefile
-install_manifest.txt
-compile_commands.json
-
-# Temporary files
-*.tmp
+# Logs and temporary files
 *.log
+*.tmp
+*.temp
 *.bak
-*.swp
+*~
+[Ll]ogs/
 
-# vcpkg
-vcpkg_installed/
+# Generated shader binaries
+*.cso
+*.dxil
+*.dxbc
+*.spv
 
-# debug information files
-*.dwo
+# Local shader cache
+ShaderCache/
+DerivedDataCache/
 
-# test output & cache
-Testing/
-.cache/
+# Render captures
+*.wpix
+*.rdc
+
+# Local environment
+.env
+.env.local
+
+# Operating system
+Thumbs.db
+Desktop.ini
+.DS_Store

@@ -1,0 +1,34 @@
+# Automatically normalize text files
+* text=auto
+
+# C++ and HLSL source files
+*.cpp text eol=lf
+*.h text eol=lf
+*.hpp text eol=lf
+*.hlsl text eol=lf
+*.hlsli text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# Visual Studio project files
+*.sln text
+*.slnx text
+*.vcxproj text
+*.filters text
+*.props text
+*.targets text
+
+# Binary assets
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.dds binary
+*.hdr binary
+*.exr binary
+*.glb binary
+*.fbx binary
+*.wav binary
+*.mp3 binary
+*.zip binary
