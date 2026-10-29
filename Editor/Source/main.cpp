@@ -1,4 +1,5 @@
 #include <cstdlib>
+#include <string>
 
 #include <Windows.h>
 
@@ -12,6 +13,13 @@ int WINAPI wWinMain(
 {
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(commandLine);
+
+    // Must be configured before window creation.
+    // If a manifest has already configured DPI awareness,
+    // this call may fail without being fatal.
+    SetProcessDpiAwarenessContext(
+        DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2
+    );
 
     constexpr int WindowWidth = 1280;
     constexpr int WindowHeight = 720;
@@ -42,12 +50,12 @@ int WINAPI wWinMain(
 
     while (running)
     {
-        if (PeekMessageW(
-                &message,
-                nullptr,
-                0,
-                0,
-                PM_REMOVE))
+        while (PeekMessageW(
+            &message,
+            nullptr,
+            0,
+            0,
+            PM_REMOVE))
         {
             if (message.message == WM_QUIT)
             {
@@ -55,21 +63,54 @@ int WINAPI wWinMain(
                     static_cast<int>(message.wParam);
 
                 running = false;
-                continue;
+                break;
             }
 
             TranslateMessage(&message);
             DispatchMessageW(&message);
         }
-        else
+
+        if (!running)
         {
-            // No rendering yet.
-            // Sleep until a new message arrives.
-            if (!WaitMessage())
+            break;
+        }
+
+        VortexEngine::Platform::WindowEvent event{};
+
+        while (window.PollEvent(event))
+        {
+            const auto& state = event.State;
+
+            if (window.GetHandle() == nullptr)
             {
-                exitCode = EXIT_FAILURE;
-                running = false;
+                continue;
             }
+
+            std::wstring title =
+                L"VortexEngine Editor | ";
+
+            title += std::to_wstring(state.Width);
+            title += L"x";
+            title += std::to_wstring(state.Height);
+            title += L" | DPI ";
+            title += std::to_wstring(state.Dpi);
+
+            if (state.IsMinimized)
+            {
+                title += L" | Minimized";
+            }
+
+            SetWindowTextW(
+                window.GetHandle(),
+                title.c_str()
+            );
+        }
+
+        // Rendering will be added in later commits.
+        if (!WaitMessage())
+        {
+            exitCode = EXIT_FAILURE;
+            break;
         }
     }
 
