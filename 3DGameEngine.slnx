@@ -1,7 +1,6 @@
 <Solution>
   <Configurations>
     <Platform Name="x64" />
-    <Platform Name="x86" />
   </Configurations>
-  <Project Path="3DGameEngine/3DGameEngine.vcxproj" />
+  <Project Path="3DGameEngine/3DGameEngine.vcxproj" Id="813f17ae-0802-4a94-996d-1753cecb764a" />
 </Solution>
