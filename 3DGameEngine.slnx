@@ -2,5 +2,7 @@
   <Configurations>
     <Platform Name="x64" />
   </Configurations>
-  <Project Path="3DGameEngine/3DGameEngine.vcxproj" Id="813f17ae-0802-4a94-996d-1753cecb764a" />
+  <Project Path="Engine/Engine.vcxproj" Id="b39bd5b7-7fa8-47e2-a880-32f260ff7d09" />
+  <Project Path="Editor/Editor.vcxproj" Id="813f17ae-0802-4a94-996d-1753cecb764a" />
+  <Project Path="Game/Game.vcxproj" Id="c9133372-b7eb-418f-9426-4d99b9f586c4" />
 </Solution>
