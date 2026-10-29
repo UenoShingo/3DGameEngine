@@ -36,17 +36,44 @@ int WINAPI wWinMain(
 
     window.Show(showCommand);
 
-    // Temporary modal test.
-    // Replaced by the message loop in Commit 006.
-    MessageBoxW(
-        window.GetHandle(),
-        L"Win32 window created successfully.\n"
-        L"Press OK to close the application.",
-        L"VortexEngine - Commit 005",
-        MB_OK | MB_ICONINFORMATION
-    );
+    MSG message{};
+    bool running = true;
+    int exitCode = EXIT_SUCCESS;
+
+    while (running)
+    {
+        if (PeekMessageW(
+                &message,
+                nullptr,
+                0,
+                0,
+                PM_REMOVE))
+        {
+            if (message.message == WM_QUIT)
+            {
+                exitCode =
+                    static_cast<int>(message.wParam);
+
+                running = false;
+                continue;
+            }
+
+            TranslateMessage(&message);
+            DispatchMessageW(&message);
+        }
+        else
+        {
+            // No rendering yet.
+            // Sleep until a new message arrives.
+            if (!WaitMessage())
+            {
+                exitCode = EXIT_FAILURE;
+                running = false;
+            }
+        }
+    }
 
     window.Destroy();
 
-    return EXIT_SUCCESS;
+    return exitCode;
 }

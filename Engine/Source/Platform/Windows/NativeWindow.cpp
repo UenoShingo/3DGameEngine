@@ -75,7 +75,7 @@ namespace VortexEngine::Platform
             nullptr,
             nullptr,
             instance,
-            nullptr
+            this
         );
 
         if (m_handle == nullptr)
@@ -121,6 +121,63 @@ namespace VortexEngine::Platform
         WPARAM wParam,
         LPARAM lParam)
     {
+        if (message == WM_NCCREATE)
+        {
+            const auto* createStruct =
+                reinterpret_cast<CREATESTRUCTW*>(lParam);
+
+            auto* window = static_cast<NativeWindow*>(
+                createStruct->lpCreateParams
+            );
+
+            SetWindowLongPtrW(
+                hwnd,
+                GWLP_USERDATA,
+                reinterpret_cast<LONG_PTR>(window)
+            );
+
+            return DefWindowProcW(
+                hwnd,
+                message,
+                wParam,
+                lParam
+            );
+        }
+
+        auto* window = reinterpret_cast<NativeWindow*>(
+            GetWindowLongPtrW(hwnd, GWLP_USERDATA)
+        );
+
+        switch (message)
+        {
+        case WM_CLOSE:
+            DestroyWindow(hwnd);
+            return 0;
+
+        case WM_DESTROY:
+            PostQuitMessage(0);
+            return 0;
+
+        case WM_NCDESTROY:
+        {
+            if (window != nullptr)
+            {
+                window->m_handle = nullptr;
+            }
+
+            SetWindowLongPtrW(
+                hwnd,
+                GWLP_USERDATA,
+                0
+            );
+
+            break;
+        }
+
+        default:
+            break;
+        }
+
         return DefWindowProcW(
             hwnd,
             message,
