@@ -1,6 +1,6 @@
-# VisualEngine
+# VortexEngine
 
-VisualEngine is a custom 3D game engine built with C++20, DirectX 12, and HLSL.
+VortexEngine is a custom 3D game engine built with C++20, DirectX 12, and HLSL.
 
 ## Development Environment
 
